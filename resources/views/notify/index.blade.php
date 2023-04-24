@@ -63,47 +63,36 @@
             </div>
         </div>
     </div>
-    @php
-        $todayCarbon = Carbon\Carbon::parse($today);
-        $daysOfWeek = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
-    @endphp
-    @for ($i = 0; $i <= 30; $i++)
-        @php
-            $currentDate = $todayCarbon->copy()->addDays($i);
-            $filteredNotify = $notify
-                ->filter(function ($item) use ($currentDate) {
-                    return $item->starttime->lte($currentDate) && $item->endtime->gte($currentDate);
-                })
-                ->take(3);
-        @endphp
+
+    @foreach ($dates as $item)
         <hr>
         <h5 class=" px-5 py-3 d-flex justify-content-between">
-            {{-- {{dd($currentDate->format('Y-m-d'))}} --}}
-            <span> {{ $currentDate->format('Y-m-d') }} ({{ $daysOfWeek[$currentDate->dayOfWeek] }})</span>
-            <a href="/kaohsiung/calendar?date={{ $currentDate->format('Y-m-d') }}" class="pr-2">查看全部</a>
+            <span>{{ $item['date'] }}({{ $item['dayOfWeek'] }})</span>
+            <a href="/kaohsiung/calendar?date=" class="pr-2">查看全部</a>
         </h5>
         <div class="px-5 container text-center">
             <div class="row">
-                @foreach ($filteredNotify as $item)
-                    <div class="col-4">
-                        <div class="card"><img
-                                data-src="http://yii.tw/event-image/600x600/305394c8527e5a386ef5ebaf4c5b065a.jpg"
-                                class="card-img-top"
-                                src="http://yii.tw/event-image/600x600/305394c8527e5a386ef5ebaf4c5b065a.jpg"
-                                data-was-processed="true">
-                            <div class="card-body">
-                                <h6><a href="/events/11833" class="text-break">科工想見你-收錄音機藏品展</a></h6>
-                                <a href="/kaohsiung/calendar?place=nstm">
-                                    <div class="place text-break">國立科學工藝博物館</div>
-                                </a>
+                @if (!empty($item['items']))
+                    @foreach (array_slice($item['items'], 0, 3) as $value)
+                        <div class="col-4">
+                            <div class="card"><img
+                                    data-src="http://yii.tw/event-image/600x600/305394c8527e5a386ef5ebaf4c5b065a.jpg"
+                                    class="card-img-top"
+                                    src="http://yii.tw/event-image/600x600/305394c8527e5a386ef5ebaf4c5b065a.jpg"
+                                    data-was-processed="true">
+                                <div class="card-body">
+                                    <h6><a href="/events/11833" class="text-break">{{ $value['title'] }}</a></h6>
+                                    <a href="/kaohsiung/calendar?place=nstm">
+                                        <div class="place text-break">國立科學工藝博物館</div>
+                                    </a>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                @endforeach
+                    @endforeach
+                @endif
             </div>
         </div>
-    @endfor
-
+    @endforeach
 
 
     <!-- Modal -->
@@ -112,9 +101,6 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="add-event-modal-label">新增活動</h5>
-                    {{-- <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button> --}}
                     <button type="button" class="btn-close" data-coreui-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="form">
@@ -156,44 +142,41 @@
     <script>
         $(function() {
             $("#btn-submit").click(function(e) {
-                // e.preventDefault(); // 防止表單正常提交
-                // let title = $("#title").val();
-                // let content = $("#content").val();
-                // let starttime = $("#starttime").val();
-                // let endtime = $("#endtime").val();
-                // let status = $("#status").val();
-                // $.ajax({
-                //     type: 'POST',
-                //     url: "{{ route('notify.store') }}",
-                //     headers: {
-                //         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                //     },
-                //     data: $('#form').serialize(), // 將表單數據序列化
-                //     success: function(data) {
-                //         // 根據後端回應顯示 SweetAlert
-                //         Swal.fire({
-                //             title: data.status === 'success' ? '成功！' : '錯誤！',
-                //             text: data.message,
-                //             icon: data.status,
-                //             confirmButtonText: '確定',
-                //         }).then(() => {
-                //             if (data.status === 'success') {
-
-                //                 $("#title").val('');
-                //                 $("#content").val('');
-                //             }
-                //         });
-                //     },
-                //     error: function(error) {
-                //         // 顯示錯誤 SweetAlert
-                //         Swal.fire({
-                //             title: '儲存錯誤！',
-                //             text: error.message,
-                //             icon: error.icon,
-                //             confirmButtonText: '確定',
-                //         });
-                //     }
-                // });
+                e.preventDefault(); // 防止表單正常提交
+                $.ajax({
+                    type: 'POST',
+                    url: "{{ route('notify.store') }}",
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    data: $('#form').serialize(), // 將表單數據序列化
+                    success: function(data) {
+                        Swal.fire({
+                            title: data.status === 'success' ? '成功！' : '錯誤！',
+                            text: data.message,
+                            icon: data.status,
+                            confirmButtonText: '確定',
+                        }).then(() => {
+                            if (data.status === 'success') {
+                                // 清除表單的值
+                                $("#title").val('');
+                                $("#content").val('');
+                            }
+                        });
+                    },
+                    error: function(error) {
+                        // 顯示錯誤 SweetAlert
+                        Swal.fire({
+                            title: '儲存錯誤！',
+                            text: error.message,
+                            icon: error.icon,
+                            confirmButtonText: '確定',
+                        });
+                    }
+                });
+            });
+            $('#add-modal').on('hidden.coreui.modal', function() {
+                window.location.reload();
             });
         });
     </script>

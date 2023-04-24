@@ -14,10 +14,32 @@ class NotifyController extends Controller
      */
     public function index()
     {
-        $nowday=Carbon::now()->format('Y-m-d\TH:i');
-        $today = Carbon::now()->toDateString();
-        $notify=Notify::Orderby('starttime','desc')->take(3)->get();
-        return view('notify.index', compact('today','notify','nowday'));
+        $nowday = Carbon::now()->format('Y-m-d\TH:i');
+
+
+        $today = Carbon::today();
+        $dates = [];
+
+        for ($i = 0; $i < 60; $i++) {
+            $date = $today->copy()->subDays($i)->toDateString();
+            $dayOfWeek = $today->copy()->subDays($i)->dayOfWeek;
+            $dayOfWeekString = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'][$dayOfWeek];
+            $dates[$date] = ['date' => $date, 'dayOfWeek' => $dayOfWeekString, 'items' => []];
+        }
+
+        $notifys = Notify::all();
+
+        foreach ($notifys as $value) {
+            foreach ($dates as $key => $date) {
+                $startDate = Carbon::parse($date['date'])->startOfDay();
+                $endDate = Carbon::parse($date['date'])->endOfDay();
+                if ($value->starttime->between($startDate, $endDate) && $value->endtime->between($startDate, $endDate)) {
+                    $dates[$key]['items'][] = $value;
+                }
+            }
+        }
+        // dd($dates);
+        return view('notify.index', compact('today', 'dates', 'nowday'));
     }
 
     /**
